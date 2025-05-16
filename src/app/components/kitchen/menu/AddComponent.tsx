@@ -84,7 +84,7 @@ const AddMenuItemPage: React.FC = () => {
   const handlePublish = async () => {
     const api_url = process.env.NEXT_PUBLIC_API_URL
 
-    if (!user?.email?.address && !user?.wallet?.address) {
+    if (!user?.google?.email) {
       setError('Please log in to continue');
       return;
     }
