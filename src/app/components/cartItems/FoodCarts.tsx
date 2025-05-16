@@ -124,6 +124,8 @@ const FoodCarts: React.FC<FoodCartsProps> = ({ setShowCart }) => {
     }
   };
 
+  console.log("Account: ", walletAddress)
+
   const handlePaymentSuccess = () => {
     setCartItems([]);
     localStorage.removeItem("cartItems");

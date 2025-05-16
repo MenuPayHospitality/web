@@ -1,16 +1,16 @@
 import { Connection, VersionedTransaction, PublicKey, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, getAssociatedTokenAddress } from '@solana/spl-token';
 
 // Configuration constants
-const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'); // Mainnet USDC mint address
+const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
 // Interface for function parameters
 interface WithdrawUSDCParams {
   connection: Connection;
   userPublicKeyAddress: string;
   amount: number;
-  signTransaction: any
-  restaurantAddress: string
+  signTransaction: any;
+  restaurantAddress: string;
 }
 
 /**
@@ -46,31 +46,42 @@ export async function withdrawUSDC({
     } catch (err) {
       throw new Error(`Invalid public key`);
     }
-
-    console.log(userPublicKey)
-    console.log(destinationPublicKey)
-
+    
     // Convert amount to lamports (USDC has 6 decimals)
     const amountInLamports: number = Math.round(amount * 1_000_000);
-
+    
     const userTokenAccount = await getAssociatedTokenAddress(
       USDC_MINT,
       userPublicKey
     );
-
+    
     const destinationTokenAccount = await getAssociatedTokenAddress(
       USDC_MINT,
       destinationPublicKey
     );
+    
+    // Create transaction instructions
+    const instructions: TransactionInstruction[] = [];
 
     // Check if destination token account exists
     const destinationAccountInfo = await connection.getAccountInfo(destinationTokenAccount);
+    
+    // If destination token account doesn't exist, create it
     if (!destinationAccountInfo) {
-      throw new Error('Destination token account does not exist');
+      console.log('Destination token account does not exist. Creating it...');
+      // Add instruction to create the destination token account
+      instructions.push(
+        createAssociatedTokenAccountInstruction(
+          userPublicKey, // Payer of the initialization fees
+          destinationTokenAccount, // Token account to create
+          destinationPublicKey, // Owner of the token account
+          USDC_MINT // Mint
+        )
+      );
     }
 
-    // Create transaction instructions
-    const instructions: TransactionInstruction[] = [
+    // Add transfer instruction
+    instructions.push(
       new TransactionInstruction({
         keys: [
           { pubkey: userTokenAccount, isSigner: false, isWritable: true },
@@ -88,8 +99,8 @@ export async function withdrawUSDC({
               .map(byte => parseInt(byte, 16))
           ),
         ]),
-      }),
-    ];
+      })
+    );
 
     // Get latest blockhash
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
@@ -104,8 +115,11 @@ export async function withdrawUSDC({
     // Create versioned transaction
     const transaction = new VersionedTransaction(messageV0);
 
-    // Sign transaction
-    const signedTransaction = await signTransaction(transaction);
+    // Use Privy's signTransaction properly according to docs
+    const signedTransaction = await signTransaction({
+      transaction: transaction,
+      connection: connection
+    });
 
     // Send transaction
     const signature = await connection.sendRawTransaction(signedTransaction.serialize());

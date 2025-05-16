@@ -7,6 +7,7 @@ import FoodCarts from "../cartItems/FoodCarts";
 import { Category } from "@/types/restaurant";
 import axios from "axios";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 
 interface FoodCategory {
     id: string;
@@ -28,9 +29,9 @@ export default function WelcomeScreen() {
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [showCart, setShowCart] = useState(false)
     const [categories, setCategories] = useState<Category[]>([]);
+    const [restaurant, setRestaurant] = useState<any>();
 
     const param = useParams();
- console.log("Isss: ", param)
 
     const handleShowCart = () => {
         localStorage.setItem("show_cart", "true")
@@ -75,7 +76,39 @@ export default function WelcomeScreen() {
                 console.error("Error fetching categories:", error);
             }
         };
+
+        const fetchRestaurant= async () => {
+            const api_url = process.env.NEXT_PUBLIC_API_URL;
+
+            const storedData = localStorage.getItem("restaurant_unique");
+            if (!storedData) {
+                console.error("No restaurant data found in localStorage");
+                return;
+            }
+
+            const restaurantInfo = JSON.parse(storedData);
+
+            try {
+                const response = await axios.get(`${api_url}/restaurant/${restaurantInfo.id}`);
+                console.log("Response data: ", response.data);
+                if (response.data && Array.isArray(response.data)) {
+
+                    const mappedCategories = response.data
+                    // map((item: any) => ({
+                    //     id: item.id || item.categoryId,
+                    //     name: item.name || item.category || "Unnamed Category",
+                    //     imageUrl: item.imageUrl || undefined,
+                    // }));
+                    setRestaurant(mappedCategories);
+                } else {
+                    console.error("No categories found in response");
+                }
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+            }
+        };
         fetchCategories();
+        fetchRestaurant();
     }, []);
 
     return (
@@ -84,6 +117,9 @@ export default function WelcomeScreen() {
                 {/* Header */}
                 <div className=" sticky top-0 w-full z-40 bg-white">
                     <div className="px-3 py-2 flex justify-between items-center bg-white">
+                        {/* <div>
+                            <Image src={restaurant?.logoUrl} alt="" width={200} height={200} className="w-14 h-14"/>
+                        </div> */}
                         <div className="flex-1 pr-3">
                             <p className="text-lg font-bold">Welcome!</p>
                             <input

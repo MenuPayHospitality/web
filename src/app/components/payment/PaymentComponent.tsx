@@ -1,12 +1,12 @@
 "use client"
 import { X } from "lucide-react";
 import { useState } from "react";
-import PayWithQrcode from "./PayWithQrcode";
 import { connection } from "../../../../utlis/constants";
 import { withdrawUSDC } from "../../../../utlis/withdrawFromInApp";
 import { usePrivy, useSignTransaction, useSolanaWallets } from "@privy-io/react-auth";
 import Image from "next/image";
 import LoginComponent from "../account/LoginAccount";
+import { QrCodePayment } from "./PayWithQrcode";
 
 interface PaymentComponentProps {
   onClosePaymentModel: (show: boolean) => void;
@@ -47,14 +47,17 @@ export default function PaymentComponent({
 
   const handlePayment = async (type: string, methodId: string) => {
     if (type === "in_app_wallet") {
+
+      console.log("Testing")
       try {
-        console.log(wallets[0].address)
+        console.log(wallets[0]?.address)
         if (!user || !wallets[0].address) {
           onClosePaymentModel(true)
           setIsUserLogin(true)
           console.error("No wallet address available");
           return;
         }
+        
         await withdrawUSDC({
           connection,
           userPublicKeyAddress: wallets[0]?.address.toString(),
@@ -62,7 +65,7 @@ export default function PaymentComponent({
           signTransaction,
           restaurantAddress
         });
-        onPaymentSuccess();
+        // onPaymentSuccess();
       } catch (error) {
         console.error("Payment failed:", error);
         alert("Payment failed. Please try again.");
@@ -70,6 +73,7 @@ export default function PaymentComponent({
     } else {
       setSelectedMethod(methodId);
       setShowQrcodePayment(true);
+      console.log("Tested..")
     }
   };
 
@@ -88,7 +92,7 @@ export default function PaymentComponent({
       {isUserLogin && <LoginComponent />}
       <div className="bg-gray-50 fixed bottom-0 flex flex-col justify-end rounded-t-xl max-h-[90vh] z-50 w-full md:w-1/2 mx-auto">
         {showQrcodePayment && selectedMethod === "scan_payment" ? (
-          <PayWithQrcode
+          <QrCodePayment
             paymentAmount={amount}
             title={title}
             restaurantAddress={restaurantAddress}
